@@ -108,8 +108,8 @@ namespace CurveExtractor
                         return Points.Last().Y;
 
                     var tmp = new List<float>(Points.Count);
-                    for (var itr = 0; itr < Points.Count; ++itr)
-                        tmp[itr] = Points[itr].Y;
+                    foreach (var pointInfo in Points)
+                        tmp.Add(pointInfo.Y);
 
                     var mu = (x - Points[0].X) / xDiff;
                     for (var i = Points.Count - 1; i > 0; --i)
