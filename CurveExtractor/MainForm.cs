@@ -84,7 +84,7 @@ namespace CurveExtractor
             chart1.Series.Add("Line");
             chart1.Series.Add("Points");
 
-            for (; minBound <= maxBound; minBound += 0.1f)
+            for (; minBound <= maxBound; minBound += 0.5f)
                 chart1.Series["Line"].Points.AddXY(minBound, curveInfo.GetValueAt(minBound));
 
             chart1.Series["Line"].ChartType = SeriesChartType.Line;
@@ -124,6 +124,55 @@ namespace CurveExtractor
                         Name = $@"Curve #{curveInfo.ID} ({curveInfo.Points.Count} points)"
                     });
             }
+        }
+
+        void OnMouseMove(object sender, MouseEventArgs e)
+        {
+            var pos = e.Location;
+            if (_previousPosition.HasValue && pos == _previousPosition.Value)
+                return;
+
+            _tooltip.RemoveAll();
+            _previousPosition = pos;
+            var results = chart1.HitTest(pos.X, pos.Y, false, ChartElementType.DataPoint);
+            foreach (var result in results)
+            {
+                if (result.ChartElementType != ChartElementType.DataPoint)
+                    continue;
+
+                var prop = result.Object as DataPoint;
+                if (prop == null)
+                    continue;
+
+                var pointXPixel = result.ChartArea.AxisX.ValueToPixelPosition(prop.XValue);
+                var pointYPixel = result.ChartArea.AxisY.ValueToPixelPosition(prop.YValues[0]);
+
+                // check if the cursor is really close to the point (2 pixels around)
+                if (Math.Abs(pos.X - pointXPixel) < 2 &&
+                    Math.Abs(pos.Y - pointYPixel) < 2)
+                {
+                    _tooltip.Show("X=" + prop.XValue + ", Y=" + prop.YValues[0], chart1, pos.X, pos.Y - 15);
+                }
+            }
+        }
+
+        private ToolTip _tooltip = new ToolTip();
+        private Point? _previousPosition;
+
+        private void OnValueChanged(object sender, EventArgs e)
+        {
+            var selectedItem = listBox1.SelectedItem as ListBoxEntry;
+            if (selectedItem == null)
+                return;
+
+            var curveInfo = _curves.FirstOrDefault(c => c.ID == selectedItem.Entry);
+            if (curveInfo == null)
+                return;
+
+            if (curveInfo.Points.Count == 0)
+                return;
+
+            textBox2.Text = $"{curveInfo.GetValueAt(float.Parse(textBox1.Text))}";
         }
     }
 
