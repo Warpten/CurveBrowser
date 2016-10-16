@@ -1,12 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 using CurveExtractor.Structures;
@@ -28,6 +24,33 @@ namespace CurveExtractor
             CurveManager.Chart = chart1;
             chart1.ChartAreas[0].AxisX.MajorGrid.LineWidth = 0;
             chart1.ChartAreas[0].AxisY.MajorGrid.LineWidth = 0;
+
+            chart1.ChartAreas[0].CursorX.IsUserEnabled = true;
+            chart1.ChartAreas[0].CursorX.IsUserSelectionEnabled = true;
+            chart1.ChartAreas[0].CursorY.IsUserEnabled = true;
+            chart1.ChartAreas[0].CursorY.IsUserSelectionEnabled = true;
+
+            chart1.ChartAreas[0].CursorX.Interval = 0;
+            chart1.ChartAreas[0].CursorY.Interval = 0;
+            chart1.ChartAreas[0].AxisX.ScaleView.Zoomable = true;
+            chart1.ChartAreas[0].AxisX.ScrollBar.ButtonColor = Color.LightSkyBlue;
+            chart1.ChartAreas[0].AxisX.ScrollBar.LineColor = Color.SkyBlue;
+            chart1.ChartAreas[0].AxisX.ScrollBar.ButtonStyle = ScrollBarButtonStyles.ResetZoom;
+            chart1.ChartAreas[0].AxisX.ScrollBar.BackColor = Color.White;
+            chart1.ChartAreas[0].AxisY.ScaleView.Zoomable = true;
+            chart1.ChartAreas[0].AxisY.ScrollBar.ButtonColor = Color.LightSkyBlue;
+            chart1.ChartAreas[0].AxisY.ScrollBar.LineColor = Color.SkyBlue;
+            chart1.ChartAreas[0].AxisY.ScrollBar.ButtonStyle = ScrollBarButtonStyles.ResetZoom;
+            chart1.ChartAreas[0].AxisY.ScrollBar.BackColor = Color.White;
+
+            chart1.ChartAreas[0].CursorX.LineColor = Color.Black;
+            chart1.ChartAreas[0].CursorX.LineWidth = 1;
+            chart1.ChartAreas[0].CursorX.LineDashStyle = ChartDashStyle.Dot;
+            chart1.ChartAreas[0].CursorX.Interval = 0;
+            chart1.ChartAreas[0].CursorY.LineColor = Color.Black;
+            chart1.ChartAreas[0].CursorY.LineWidth = 1;
+            chart1.ChartAreas[0].CursorY.LineDashStyle = ChartDashStyle.Dot;
+            chart1.ChartAreas[0].CursorY.Interval = 0;
 
             checkedListBox1.Items.Add(CurveInterpolationMode.Constant);
             checkedListBox1.Items.Add(CurveInterpolationMode.Linear);
@@ -100,6 +123,11 @@ namespace CurveExtractor
 
         void OnMouseMove(object sender, MouseEventArgs e)
         {
+            Point mousePoint = new Point(e.X, e.Y);
+
+            chart1.ChartAreas[0].CursorX.SetCursorPixelPosition(mousePoint, true);
+            chart1.ChartAreas[0].CursorY.SetCursorPixelPosition(mousePoint, true);
+
             var pos = e.Location;
             if (_previousPosition.HasValue && pos == _previousPosition.Value)
                 return;
