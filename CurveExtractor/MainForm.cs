@@ -25,6 +25,10 @@ namespace CurveExtractor
 
         private void OnLoad(object sender, EventArgs e)
         {
+            CurveManager.Chart = chart1;
+            chart1.ChartAreas[0].AxisX.MajorGrid.LineWidth = 0;
+            chart1.ChartAreas[0].AxisY.MajorGrid.LineWidth = 0;
+
             checkedListBox1.Items.Add(CurveInterpolationMode.Constant);
             checkedListBox1.Items.Add(CurveInterpolationMode.Linear);
             checkedListBox1.Items.Add(CurveInterpolationMode.Cosine);
@@ -38,7 +42,7 @@ namespace CurveExtractor
 
             foreach (var curveKvp in curveStore)
             {
-                var curveInfo = new Curve()
+                var curveInfo = new Curve
                 {
                     ID = curveKvp.Key,
                     Type = curveKvp.Value.Type
@@ -56,50 +60,12 @@ namespace CurveExtractor
                 curveInfo.Sort();
             }
 
-            foreach (var curveInfo in _curves.OrderBy(c => c.Points.Count))
+            foreach (var curveInfo in _curves/*.OrderBy(c => c.Points.Count)*/)
                 listBox1.Items.Add(new ListBoxEntry()
                 {
                     Entry = curveInfo.ID,
                     Name = $@"Curve #{curveInfo.ID} ({curveInfo.Points.Count} points)"
                 });
-        }
-
-        private void DoPlot(object sender, EventArgs e)
-        {
-            var selectedItem = listBox1.SelectedItem as ListBoxEntry;
-            if (selectedItem == null)
-                return;
-
-            var curveInfo = _curves.FirstOrDefault(c => c.ID == selectedItem.Entry);
-            if (curveInfo == null)
-                return;
-
-            if (curveInfo.Points.Count == 0)
-                return;
-
-            var minBound = curveInfo.Points.First().X;
-            var maxBound = curveInfo.Points.Last().X;
-
-            chart1.Series.Clear();
-            chart1.Series.Add("Line");
-            chart1.Series.Add("Points");
-
-            for (; minBound <= maxBound; minBound += 0.5f)
-                chart1.Series["Line"].Points.AddXY(minBound, curveInfo.GetValueAt(minBound));
-
-            chart1.Series["Line"].ChartType = SeriesChartType.Line;
-
-            for (var i = 0; i < curveInfo.Points.Count; ++i)
-                chart1.Series["Points"].Points.AddXY(curveInfo.Points[i].X, curveInfo.Points[i].Y);
-
-            chart1.Series["Points"].ChartType = SeriesChartType.Point;
-            chart1.Series["Points"].Color = Color.DarkBlue;
-            chart1.Series["Points"].BorderWidth = 3;
-
-            chart1.ChartAreas[0].AxisX.MajorGrid.LineWidth = 0;
-            chart1.ChartAreas[0].AxisY.MajorGrid.LineWidth = 0;
-
-            label2.Text = Curve.DetermineInterpolationMode(curveInfo).ToString();
         }
 
         private void OnModeSelect(object sender, ItemCheckEventArgs e)
@@ -118,11 +84,17 @@ namespace CurveExtractor
             {
                 var mask = 1 << (int)Curve.DetermineInterpolationMode(curveInfo);
                 if ((visibilityMask & mask) != 0)
+                {
                     listBox1.Items.Add(new ListBoxEntry()
                     {
                         Entry = curveInfo.ID,
                         Name = $@"Curve #{curveInfo.ID} ({curveInfo.Points.Count} points)"
                     });
+                }
+                else
+                {
+                    CurveManager.RemoveCurve(curveInfo.ID);
+                }
             }
         }
 
@@ -148,8 +120,8 @@ namespace CurveExtractor
                 var pointYPixel = result.ChartArea.AxisY.ValueToPixelPosition(prop.YValues[0]);
 
                 // check if the cursor is really close to the point (2 pixels around)
-                if (Math.Abs(pos.X - pointXPixel) < 2 &&
-                    Math.Abs(pos.Y - pointYPixel) < 2)
+                if (Math.Abs(pos.X - pointXPixel) < 4 &&
+                    Math.Abs(pos.Y - pointYPixel) < 4)
                 {
                     _tooltip.Show("X=" + prop.XValue + ", Y=" + prop.YValues[0], chart1, pos.X, pos.Y - 15);
                 }
@@ -159,20 +131,20 @@ namespace CurveExtractor
         private ToolTip _tooltip = new ToolTip();
         private Point? _previousPosition;
 
-        private void OnValueChanged(object sender, EventArgs e)
+        private void OnItemSelected(object sender, ItemCheckEventArgs e)
         {
-            var selectedItem = listBox1.SelectedItem as ListBoxEntry;
-            if (selectedItem == null)
-                return;
-
-            var curveInfo = _curves.FirstOrDefault(c => c.ID == selectedItem.Entry);
-            if (curveInfo == null)
-                return;
-
-            if (curveInfo.Points.Count == 0)
-                return;
-
-            textBox2.Text = $"{curveInfo.GetValueAt(float.Parse(textBox1.Text))}";
+            if (e.NewValue == CheckState.Checked)
+            {
+                var listBoxEntry = (ListBoxEntry) listBox1.Items[e.Index];
+                var curveInfo = _curves.FirstOrDefault(c => c.ID == listBoxEntry.Entry);
+                if (curveInfo != null)
+                    CurveManager.AddCurve(curveInfo);
+            }
+            else if (e.NewValue == CheckState.Unchecked)
+            {
+                var listBoxEntry = (ListBoxEntry)listBox1.Items[e.Index];
+                CurveManager.RemoveCurve(listBoxEntry.Entry);
+            }
         }
     }
 

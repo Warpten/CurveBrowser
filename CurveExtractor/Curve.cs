@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using CurveExtractor.Structures;
 using System.Linq;
+using System.Windows.Forms.DataVisualization.Charting;
 
 namespace CurveExtractor
 {
@@ -10,7 +11,6 @@ namespace CurveExtractor
         public int ID { get; set; }
         public byte Type { get; set; }
 
-        // DB2 data
         public List<CurvePointEntry> Points { get; private set; } = new List<CurvePointEntry>(); 
 
         public void Sort()
@@ -87,7 +87,7 @@ namespace CurveExtractor
                         return Points[1].Y;
 
                     var mu = (x - Points[0].X) / xDiff;
-                    return ((1.0f - mu) * (1.0f - mu) * Points[0].Y) + (1.0f - mu) * 2.0f * mu * Points[1].Y + mu * mu * Points[2].Y;
+                    return (1.0f - mu) * (1.0f - mu) * Points[0].Y + (1.0f - mu) * 2.0f * mu * Points[1].Y + mu * mu * Points[2].Y;
                 }
                 case CurveInterpolationMode.Bezier4:
                 {
@@ -108,8 +108,7 @@ namespace CurveExtractor
                         return Points.Last().Y;
 
                     var tmp = new List<float>(Points.Count);
-                    foreach (var pointInfo in Points)
-                        tmp.Add(pointInfo.Y);
+                    tmp.AddRange(Points.Select(pointInfo => pointInfo.Y));
 
                     var mu = (x - Points[0].X) / xDiff;
                     for (var i = Points.Count - 1; i > 0; --i)
@@ -129,7 +128,6 @@ namespace CurveExtractor
                     throw new ArgumentOutOfRangeException();
             }
         }
-
 
         public static CurveInterpolationMode DetermineInterpolationMode(Curve curve)
         {
@@ -166,5 +164,52 @@ namespace CurveExtractor
         Bezier4 = 5,
         Bezier = 6,
         Constant = 7,
+    }
+
+    public static class CurveManager
+    {
+        public static Chart Chart { private get; set; }
+
+        public static void AddCurve(Curve curve)
+        {
+            if (Chart == null)
+                return;
+
+            var serie = Chart.Series.Add($"#{curve.ID}");
+            var minBound = curve.Points.First().X;
+            var maxBound = curve.Points.Last().X;
+            var step = (maxBound - minBound) / (curve.Points.Count * 30);
+
+            for (; minBound < maxBound; minBound += step)
+                serie.Points.AddXY(minBound, curve.GetValueAt(minBound));
+
+            serie.BorderWidth = 2;
+            serie.ChartType = SeriesChartType.Line;
+            serie.IsVisibleInLegend = true;
+
+            // Also load points for display - but don't display them in the legend
+            var pointSerie = Chart.Series.Add($"#{curve.ID}P");
+            foreach (var point in curve.Points)
+                pointSerie.Points.AddXY(point.X, curve.GetValueAt(point.X));
+
+            pointSerie.BorderWidth = 3;
+            pointSerie.MarkerStyle = MarkerStyle.Circle;
+            pointSerie.ChartType = SeriesChartType.Point;
+            pointSerie.IsVisibleInLegend = false;
+        }
+
+        public static void RemoveCurve(int curveID)
+        {
+            if (Chart == null)
+                return;
+
+            Chart.Series.Remove(Chart.Series.FindByName($"#{curveID}"));
+            Chart.Series.Remove(Chart.Series.FindByName($"#{curveID}P"));
+        }
+
+        public static void Clear()
+        {
+            Chart?.Series.Clear();
+        }
     }
 }
