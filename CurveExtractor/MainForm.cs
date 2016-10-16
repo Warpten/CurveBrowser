@@ -123,18 +123,16 @@ namespace CurveExtractor
 
         void OnMouseMove(object sender, MouseEventArgs e)
         {
-            Point mousePoint = new Point(e.X, e.Y);
+            chart1.ChartAreas[0].CursorX.SetCursorPixelPosition(e.Location, true);
+            chart1.ChartAreas[0].CursorY.SetCursorPixelPosition(e.Location, true);
 
-            chart1.ChartAreas[0].CursorX.SetCursorPixelPosition(mousePoint, true);
-            chart1.ChartAreas[0].CursorY.SetCursorPixelPosition(mousePoint, true);
-
-            var pos = e.Location;
-            if (_previousPosition.HasValue && pos == _previousPosition.Value)
+            if (_previousPosition.HasValue && e.Location == _previousPosition.Value)
                 return;
 
             _tooltip.RemoveAll();
-            _previousPosition = pos;
-            var results = chart1.HitTest(pos.X, pos.Y, false, ChartElementType.DataPoint);
+            _previousPosition = e.Location;
+            var results = chart1.HitTest(e.X, e.Y, false, ChartElementType.DataPoint);
+            // ReSharper disable once LoopCanBePartlyConvertedToQuery
             foreach (var result in results)
             {
                 if (result.ChartElementType != ChartElementType.DataPoint)
@@ -147,12 +145,9 @@ namespace CurveExtractor
                 var pointXPixel = result.ChartArea.AxisX.ValueToPixelPosition(prop.XValue);
                 var pointYPixel = result.ChartArea.AxisY.ValueToPixelPosition(prop.YValues[0]);
 
-                // check if the cursor is really close to the point (2 pixels around)
-                if (Math.Abs(pos.X - pointXPixel) < 4 &&
-                    Math.Abs(pos.Y - pointYPixel) < 4)
-                {
-                    _tooltip.Show("X=" + prop.XValue + ", Y=" + prop.YValues[0], chart1, pos.X, pos.Y - 15);
-                }
+                // check if the cursor is really close to the point (3 pixels around)
+                if (Math.Abs(e.X - pointXPixel) < 3 && Math.Abs(e.Y - pointYPixel) < 3)
+                    _tooltip.Show("X=" + prop.XValue + ", Y=" + prop.YValues[0], chart1, e.X, e.Y - 15);
             }
         }
 
